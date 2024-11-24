@@ -41,6 +41,11 @@ export default class SnowflakeManager {
     }
 
     drawSnowflakes(ctx) {
+        if (!Array.isArray(this.snowflakes)) {
+            console.error("Snowflakes array is not properly initialized:", this.snowflakes);
+            return;
+        }
+        
         this.snowflakes.forEach((snowflake) => snowflake.draw(ctx));
     }
 }

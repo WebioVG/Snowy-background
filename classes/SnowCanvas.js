@@ -1,4 +1,5 @@
 import SnowflakeManager from "./SnowflakeManager.js";
+import CanvasInteractivity from "./CanvasInteractivity.js";
 import SnowStack from "./SnowStack.js";
 import GustOfWind from "./GustOfWind.js";
 
@@ -11,11 +12,17 @@ export default class SnowCanvas {
         this.snowflakes = new SnowflakeManager(canvas.width, canvas.height);
         this.snowStack = new SnowStack(canvas.width, canvas.height);
         this.gusts = [];
+        this.meltEffects = []; // Track active melt effects
 
         // Bind and set up resizing
         this.resizeCanvas = this.resizeCanvas.bind(this);
         this.resizeCanvas(); // Initialize size
         window.addEventListener("resize", this.resizeCanvas);
+
+        // Set up interactivity with CursorAttractor enabled
+        this.interactivity = new CanvasInteractivity(this.canvas, {
+            enableCursorAttractor: true,
+        });
 
         // Start the animation loop
         this.animate();
@@ -41,11 +48,25 @@ export default class SnowCanvas {
 
         // Update and draw snowflakes
         this.snowflakes.updateSnowflakes(this.snowStack);
+        this.snowflakes.snowflakes = this.interactivity.updateSnowflakes(
+            this.snowflakes.snowflakes,
+            this.meltEffects
+        );
         this.snowflakes.drawSnowflakes(this.ctx);
 
         // Update and draw gusts
         this.gusts = this.gusts.filter((gust) => gust.update(this.snowflakes.snowflakes));
         this.gusts.forEach((gust) => gust.draw(this.ctx));
+
+        // Update and draw melt effects
+        this.meltEffects = this.meltEffects.filter((effect) => {
+            const isComplete = effect.update();
+            effect.draw(this.ctx);
+            return !isComplete; // Keep active effects
+        });
+
+        // Draw the cursor attractor via interactivity
+        this.interactivity.draw(this.ctx);
 
         // Smooth and draw the snow stack
         this.snowStack.smooth();
