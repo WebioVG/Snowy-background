@@ -39,7 +39,6 @@ export default class CursorAttractor {
     
         return true; // Snowflake is attracted
     }
-    
 
     absorbSnowflake(snowflake, meltEffects) {
         // Collision check: absorb if the snowflake touches the circle
@@ -60,6 +59,61 @@ export default class CursorAttractor {
             return true; // Snowflake absorbed
         }
         return false; // No absorption
+    }
+
+    absorbFromSnowStack(snowStack) {
+        const startX = Math.floor(this.x - this.radius); // Left edge of the snowball
+        const endX = Math.ceil(this.x + this.radius); // Right edge of the snowball
+    
+        let absorbedThisFrame = 0; // Track how much snow is absorbed in this frame
+        const contributionScalingFactor = 0.2; // Scale down the snowball growth
+    
+        // Iterate outward from the center
+        for (let offset = 0; offset <= this.radius; offset++) {
+            const leftX = Math.floor(this.x - offset); // Left side from the center
+            const rightX = Math.ceil(this.x + offset); // Right side from the center
+    
+            // Absorb snow from the left and right sides symmetrically
+            [leftX, rightX].forEach((x) => {
+                if (x >= 0 && x < snowStack.stack.length) {
+                    const distance = Math.abs(x - this.x); // Horizontal distance to the snowball center
+    
+                    // Check if this part of the stack is within the snowball's edge
+                    if (distance <= this.radius) {
+                        const snowStackHeightAtX = snowStack.canvasHeight - snowStack.stack[x];
+    
+                        // Check if the snowball's bottom overlaps the snow stack's top
+                        if (this.y + this.radius >= snowStackHeightAtX) {
+                            // Calculate how much snow to absorb based on proximity to the center
+                            const absorptionAmount = Math.ceil((this.radius - distance) / this.radius * 2);
+    
+                            // Decrease the snow stack height, limiting how much snow can be absorbed per frame
+                            const absorbed = Math.min(absorptionAmount, snowStack.stack[x]);
+                            snowStack.stack[x] -= absorbed;
+                            absorbedThisFrame += absorbed;
+    
+                            // Stop absorbing too much snow in a single frame
+                            if (absorbedThisFrame >= 10) return; // Cap absorption per frame
+                        }
+                    }
+                }
+            });
+    
+            // Stop processing if max absorption for this frame is reached
+            if (absorbedThisFrame >= 10) break;
+        }
+    
+        // Increase snowball radius gradually based on scaled snow absorbed
+        if (absorbedThisFrame > 0) {
+            this.absorbedCount += absorbedThisFrame * contributionScalingFactor; // Scale down contribution
+            if (this.absorbedCount >= 200) { // Increase radius after 200 snow units absorbed
+                this.radius += 1;
+                this.absorbedCount = 0;
+            }
+        }
+    
+        // Smooth the snow stack after absorption
+        snowStack.smooth();
     }
 
     drawSnowTexture(ctx) {
