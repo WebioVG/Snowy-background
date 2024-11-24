@@ -15,29 +15,30 @@ export default class SnowflakeManager {
     }
 
     updateSnowflakes(snowStack) {
-        this.snowflakes.forEach((snowflake, index) => {
+        this.snowflakes = this.snowflakes.filter((snowflake, index) => {
             snowflake.update();
     
-            // Check if the snowflake hits the snow stack
             const xPos = Math.floor(snowflake.x);
+    
+            // Check if snowflake hits the snow stack
             if (snowflake.y >= snowStack.canvasHeight - snowStack.stack[xPos]) {
-                // Add snowflake's contribution to the snow stack
                 snowStack.distributeSnowfall(xPos, snowflake.radius);
-    
-                // Remove the snowflake
-                this.snowflakes.splice(index, 1);
+                return false; // Remove this snowflake
             }
     
-            // Remove snowflake if it is out of bounds
+            // Check if snowflake is out of bounds
             if (snowflake.isOutOfBounds()) {
-                this.snowflakes.splice(index, 1);
+                return false; // Remove this snowflake
             }
+    
+            return true; // Keep this snowflake
         });
     
+        // Add new snowflakes
         if (Math.random() < SnowflakeManager.ADD_SNOWFLAKE_PROBABILITY) {
             this.addSnowflake();
         }
-    }    
+    }
 
     drawSnowflakes(ctx) {
         this.snowflakes.forEach((snowflake) => snowflake.draw(ctx));

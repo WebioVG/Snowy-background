@@ -1,5 +1,8 @@
 export default class GustOfWind {
-    constructor(canvasWidth, canvasHeight, direction, duration, x, y, width, height) {        
+    static MIN_DURATION = 2; // in seconds
+    static MAX_DURATION = 5; // in seconds
+
+    constructor(canvasWidth, canvasHeight, direction, duration, x, y, width, height, debug = false) {        
         this.canvasWidth = canvasWidth;
         this.canvasHeight = canvasHeight;
         this.direction = direction; // Wind direction in degrees
@@ -7,26 +10,56 @@ export default class GustOfWind {
         this.x = x; // Starting position
         this.y = y; // Perimeter top
         this.width = width; // Perimeter width
-        this.height = height; // 40% of the canvas height
-        this.zones = Array(10).fill(0); // Divide into 10 zones
+        this.height = height; // Perimeter height
+        this.zones = Array(20).fill(0); // Divide into 10 zones
         this.framesElapsed = 0;
         this.intensity = 0; // Current intensity
         this.maxIntensity = Math.random() * 2 + 1; // Max wind strength
+        this.debug = debug;
+        this.windLines = []; // Store wind lines
+        this.maxLines = 5; // Maximum number of lines
     }
 
     static createRandomGust(canvasWidth, canvasHeight) {
         const startSide = Math.random() < 0.5 ? "left" : "right";
         const allowedDirections = startSide === "left" ? [0, 45, 315] : [180, 135, 225];
         const direction = allowedDirections[Math.floor(Math.random() * allowedDirections.length)];
-        const duration = Math.random() * 300 + 180;
-        const width = canvasWidth * (Math.random() * 0.7 + 0.3);
-        const height = canvasHeight * (Math.random() * 0.5 + 0.5);
+        const duration = Math.random() * (GustOfWind.MAX_DURATION - GustOfWind.MIN_DURATION) * 60 + GustOfWind.MIN_DURATION * 60;
+        const width = canvasWidth * (Math.random() * 0.3 + 0.4);
+        const height = canvasHeight;
         const x = startSide === "left" ? 0 : canvasWidth - width;
         return new GustOfWind(canvasWidth, canvasHeight, direction, duration, x, 0, width, height);
     }
 
+    updateWindLines() {
+        const progressFactor = 0.02; // Speed at which the line is drawn
+    
+        // Generate lines at intervals
+        if (Math.random() < 0.02 && this.framesElapsed / this.duration < 0.8) {
+            this.generateWindLines();
+        }
+    
+        // Update existing lines
+        this.windLines.forEach((line) => {
+            // Increment progress
+            line.progress = Math.min(line.progress + progressFactor, 1); // Clamp to 1 (100%)
+    
+            // Fade in/out effect
+            if (line.fadeIn) {
+                line.opacity += 0.02;
+                if (line.opacity >= 0.8) line.fadeIn = false; // Switch to stable opacity
+            } else {
+                line.opacity -= 0.01; // Gradually fade out
+            }
+        });
+    
+        // Remove fully faded-out lines
+        this.windLines = this.windLines.filter((line) => line.opacity > 0);
+    }    
+
     update(snowflakes) {
         this.framesElapsed++;
+        this.updateWindLines(); // Update lines with gust progress
         const progress = this.framesElapsed / this.duration;
     
         // Calculate intensity (ease-in, ease-out)
@@ -93,7 +126,57 @@ export default class GustOfWind {
         snowflake.y += yEffect;
     }
 
+    generateWindLines() {
+        if (this.windLines.length >= this.maxLines) return;
+    
+        const lineLength = Math.random() * this.width * 0.2 + this.width * 0.3; // 30-50% of width
+    
+        // Determine the active zone range
+        const progress = this.framesElapsed / this.duration;
+        const activeZoneIndex = Math.floor(progress * this.zones.length);
+    
+        let activeStart, activeEnd;
+    
+        // Adjust active zone range based on wind direction
+        if (this.direction === 0 || this.direction === 45 || this.direction === 315) {
+            // Wind progresses left to right
+            activeStart = (activeZoneIndex / this.zones.length) * this.width + this.x;
+            activeEnd = ((activeZoneIndex + 1) / this.zones.length) * this.width + this.x;
+        } else if (this.direction === 180 || this.direction === 135 || this.direction === 225) {
+            // Wind progresses right to left
+            activeStart = this.x + this.width - ((activeZoneIndex + 1) / this.zones.length) * this.width;
+            activeEnd = this.x + this.width - (activeZoneIndex / this.zones.length) * this.width;
+        }
+    
+        // Ensure `activeStart` and `activeEnd` are ordered correctly
+        if (activeStart > activeEnd) [activeStart, activeEnd] = [activeEnd, activeStart];
+    
+        // Constrain the starting X to fall strictly within the active zone
+        let constrainedStart = Math.random() * (activeEnd - activeStart) + activeStart;
+    
+        const offsetY = Math.random() * this.height * 0.8 + this.y; // Random y within gust height
+    
+        // Add a new wind line with progress
+        this.windLines.push({
+            startX: constrainedStart,
+            length: lineLength,
+            y: offsetY,
+            progress: 0, // Start with no part of the line drawn
+            opacity: 0, // Start fully transparent
+            fadeIn: true, // Fade in initially
+        });
+    }
+    
+
     draw(ctx) {
+        if (this.debug) {
+            this.drawDebug(ctx);
+        }
+
+        this.drawWindLines(ctx); // Draw smooth wind lines
+    }
+
+    drawDebug(ctx) {
         // Draw the perimeter rectangle
         ctx.save();
         ctx.strokeStyle = `rgba(255, 255, 255, 0.7)`; // White with slight transparency
@@ -103,7 +186,7 @@ export default class GustOfWind {
         // Draw the perimeter rectangle
         ctx.strokeRect(this.x, this.y, this.width, this.height);
     
-        // Draw horizontal zones (divide width into 10 segments)
+        // Draw horizontal zones (divide width into segments)
         const zoneWidth = this.width / this.zones.length;
         ctx.setLineDash([5, 2]); // Smaller dashes for zones
         for (let i = 1; i < this.zones.length; i++) {
@@ -113,6 +196,22 @@ export default class GustOfWind {
             ctx.lineTo(xPos, this.y + this.height);
             ctx.stroke();
         }
+    
+        // Highlight the active zone
+        const progress = this.framesElapsed / this.duration;
+        let activeZoneIndex = Math.floor(progress * this.zones.length);
+    
+        if (this.direction === 180 || this.direction === 135 || this.direction === 225) {
+            // If starting from the right, reverse the active zone progression
+            activeZoneIndex = this.zones.length - 1 - activeZoneIndex;
+        }
+    
+        const activeStartX = this.x + activeZoneIndex * zoneWidth;
+        const activeEndX = activeStartX + zoneWidth;
+    
+        ctx.fillStyle = `rgba(255, 255, 255, 0.2)`; // Semi-transparent white
+        ctx.fillRect(activeStartX, this.y, activeEndX - activeStartX, this.height);
+    
         ctx.restore();
     
         // Draw direction arrow
@@ -150,6 +249,37 @@ export default class GustOfWind {
         );
         ctx.closePath();
         ctx.fill();
+    
+        ctx.restore();
+    }
+
+    drawWindLines(ctx) {
+        ctx.save();
+        ctx.strokeStyle = `rgba(255, 255, 255, 0.7)`; // Base color
+        ctx.lineWidth = 1.5;
+    
+        this.windLines.forEach((line) => {
+            ctx.globalAlpha = line.opacity; // Set opacity
+    
+            const radians = (this.direction * Math.PI) / 180;
+            const currentLength = line.length * line.progress; // Current length of the line
+            const startX = line.startX;
+            const startY = line.y;
+            const endX = startX + Math.cos(radians) * currentLength;
+            const endY = startY + Math.sin(radians) * currentLength;
+    
+            // Add a control point for the curve
+            const midX = (startX + endX) / 2; // Middle of the line
+            const midY = (startY + endY) / 2;
+            const controlX = midX + Math.sin(radians) * 20; // Offset for curve
+            const controlY = midY - Math.cos(radians) * 20; // Offset for curve
+    
+            // Draw the curved line
+            ctx.beginPath();
+            ctx.moveTo(startX, startY);
+            ctx.quadraticCurveTo(controlX, controlY, endX, endY);
+            ctx.stroke();
+        });
     
         ctx.restore();
     }

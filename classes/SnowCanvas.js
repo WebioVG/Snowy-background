@@ -45,8 +45,7 @@ export default class SnowCanvas {
 
         // Update and draw gusts
         this.gusts = this.gusts.filter((gust) => gust.update(this.snowflakes.snowflakes));
-        // @DEBUGGING: draw wind gusts
-        // this.gusts.forEach((gust) => gust.draw(this.ctx));
+        this.gusts.forEach((gust) => gust.draw(this.ctx));
 
         // Smooth and draw the snow stack
         this.snowStack.smooth();
