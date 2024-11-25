@@ -49,7 +49,7 @@ export default class CursorAttractor {
 
         // Increase radius every 10 snowflakes
         this.absorbedCount++;
-        if (this.absorbedCount % 10 === 0) {
+        if (Math.floor(this.absorbedCount) % 10 === 0) {
             this.radius += 1;
         }
 
