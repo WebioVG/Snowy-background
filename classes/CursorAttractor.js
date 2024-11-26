@@ -1,6 +1,8 @@
 import { SnowflakeMeltEffect } from "./SnowflakeMeltEffect.js";
 
 export default class CursorAttractor {
+    static MAX_ABSORPTION_PER_FRAME = 15;
+
     constructor(canvasWidth, canvasHeight, debug = false) {
         this.x = canvasWidth / 2; // Initial position
         this.y = canvasHeight / 2;
@@ -99,12 +101,12 @@ export default class CursorAttractor {
                     absorbedThisFrame += absorbed;
 
                     // Stop absorbing too much snow in a single frame
-                    if (absorbedThisFrame >= 10) return; // Cap absorption per frame
+                    if (absorbedThisFrame >= CursorAttractor.MAX_ABSORPTION_PER_FRAME) return; // Cap absorption per frame
                 }
             });
     
             // Stop processing if max absorption for this frame is reached
-            if (absorbedThisFrame >= 10) break;
+            if (absorbedThisFrame >= CursorAttractor.MAX_ABSORPTION_PER_FRAME) break;
         }
     
         // Increase snowball radius gradually based on scaled snow absorbed

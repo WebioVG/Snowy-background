@@ -1,10 +1,10 @@
 export default class Snowflake {
     // Define constants for snowflake properties
     static MIN_RADIUS = 1;
-    static MAX_RADIUS = 4; // MIN_RADIUS + 3
+    static MAX_RADIUS = 4;
     
     static MIN_SPEED = 1;
-    static MAX_SPEED = 3; // MIN_SPEED + 2
+    static MAX_SPEED = 3;
 
     static MIN_DRIFT = -0.25;
     static MAX_DRIFT = 0.25;
