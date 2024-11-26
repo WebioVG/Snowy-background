@@ -5,7 +5,8 @@ export default class CursorAttractor {
         this.x = canvasWidth / 2; // Initial position
         this.y = canvasHeight / 2;
         this.radius = 10; // Initial radius
-        this.absorbedCount = 0; // Tracks the number of absorbed snowflakes
+        this.absorbedSnowflakes = 0; // Tracks the number of absorbed snowflakes
+        this.absorbedCount = 0; // Tracks the number of absorbed snowflakes and absorbed snow stack
         this.isActive = false; // Tracks if it's currently interacting
         this.debug = debug;
     }
@@ -57,6 +58,9 @@ export default class CursorAttractor {
         meltEffects.push(
             new SnowflakeMeltEffect(snowflake.x, snowflake.y, snowflake.radius)
         );
+
+        // Increment the absorbed snowflakes count
+        this.absorbedSnowflakes++;
 
         return true; // Snowflake absorbed
     }

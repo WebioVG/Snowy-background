@@ -2,6 +2,7 @@ import SnowflakeManager from "./SnowflakeManager.js";
 import CanvasInteractivity from "./CanvasInteractivity.js";
 import SnowStack from "./SnowStack.js";
 import GustOfWind from "./GustOfWind.js";
+import UIManager from "./UIManager.js";
 
 export default class SnowCanvas {
     constructor(canvas) {
@@ -11,6 +12,7 @@ export default class SnowCanvas {
         // Initialize components
         this.snowflakes = new SnowflakeManager(canvas.width, canvas.height);
         this.snowStack = new SnowStack(canvas.width, canvas.height);
+        this.uiManager = new UIManager(canvas);
         this.gusts = [];
         this.meltEffects = []; // Track active melt effects
 
@@ -81,6 +83,8 @@ export default class SnowCanvas {
         if (this.gusts.length === 0 && Math.random() < 0.005) {
             this.gusts.push(GustOfWind.createRandomGust(this.canvas.width, this.canvas.height));
         }
+
+        this.uiManager.draw(this.interactivity.cursorAttractor?.absorbedSnowflakes);
     
         requestAnimationFrame(() => this.animate());
     }    
